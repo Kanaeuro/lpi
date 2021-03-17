@@ -141,10 +141,10 @@ class PredicateAtom extends AtomicFormula {
         return this;
     }
     public Cnf nnfToCnf() {
+        Cnf res = new Cnf();
         Literal l = new Literal(this);
-        List<Clause> cl = new ArrayList<>();
-        cl.add(new Clause(l));
-        return new Cnf(cl);
+        res.add(new Clause(l));
+        return res;
     }
 }
 
@@ -249,10 +249,10 @@ class Negation extends Formula {
     }
     public Formula toNnf() {
         if ( originalFormula instanceof AtomicFormula){
-            return originalFormula;
+            return this;
         }
         else if (originalFormula instanceof Negation){
-            return originalFormula.toNnf();
+            return ((Negation) originalFormula).originalFormula();
         }
         else if (originalFormula instanceof Conjunction){
             List<Formula> dis = new ArrayList<>();
@@ -290,10 +290,10 @@ class Negation extends Formula {
         }
     }
     public Cnf nnfToCnf() {
-        Literal l = new Literal((AtomicFormula) originalFormula, true);
-        List<Clause> cl = new ArrayList<>();
-        cl.add(new Clause(l));
-        return new Cnf(cl);
+        Cnf res = new Cnf();
+        Clause cl = new Clause(new Literal((AtomicFormula) originalFormula, true));
+        res.add(cl);
+        return res;
     }
 }
 
@@ -382,8 +382,21 @@ class Disjunction extends Formula {
     }
     public Cnf nnfToCnf() {
         Cnf res = new Cnf();
+        List<Cnf> cn = new ArrayList<>();
         for (Formula f: disjuncts){
-            res.addAll(f.toNnf().toCnf());
+            res.addAll(f.toNnf().nnfToCnf());
+        }
+        for (int i = 0; i < cn.size(); i++){
+            for (int j = i+1; j < cn.size(); j++){
+                for (Clause c : cn.get(i)){
+                    for (Clause cc : cn.get(j)){
+                        Clause novy = new Clause();
+                        novy.addAll(c);
+                        novy.addAll(cc);
+                        res.add(novy);
+                    }
+                }
+            }
         }
         return res;
     }
@@ -475,7 +488,7 @@ class Conjunction extends Formula {
     public Cnf nnfToCnf() {
         Cnf res = new Cnf();
         for (Formula f: conjucts){
-            res.addAll(f.toNnf().toCnf());
+            res.addAll(f.toNnf().nnfToCnf());
         }
         return res;
     }
